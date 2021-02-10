@@ -1,4 +1,4 @@
-#74595 BCD library
+# 74595 BCD library
 
 Useful, if you want to encode a number into BCD and then output it to a shift
 register compatible with the `shiftOut()` function provided by the Arduino
