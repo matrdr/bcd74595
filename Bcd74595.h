@@ -5,13 +5,31 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <math.h>
 
-class Bcd74595 {
+template <unsigned int segments, typename BcdType = uint32_t>
+class Bcd74595Base {
 public:
-	Bcd74595(uint8_t sckPin, uint8_t siPin,
-	         uint8_t rckPin, unsigned int segments);
+	Bcd74595Base(const uint8_t sckPin,
+	             const uint8_t siPin,
+	             const uint8_t rckPin) :
+		sckPin{sckPin},
+		siPin{siPin},
+		rckPin{rckPin},
+		maxNumber{static_cast<unsigned int>(pow(10U, segments)) - 1U}
+	{
+		static_assert(segments > 0U && segments <= 8U,
+		              "Invalid amount of segments. Library supports 1 "
+			      "to 8 segments.");
 
-	unsigned int GetMaxDisplayableNumber() const;
+		digitalWrite(rckPin, LOW);
+		digitalWrite(sckPin, LOW);
+	}
+
+	unsigned int GetMaxDisplayableNumber() const
+	{
+		return maxNumber;
+	}
 
 	template <class T>
 	bool WriteNumber(T number)
@@ -23,30 +41,26 @@ public:
 			number = maxNumber;
 		}
 
-		if (segments <= 2U) {
-			ProcessNumber<T, uint8_t>(number);
-		} else if (segments <= 4U) {
-			ProcessNumber<T, uint16_t>(number);
-		} else if (segments <= 8U) {
-			ProcessNumber<T, uint32_t>(number);
-		}
+		ProcessNumber(number);
 
 		return of;
 	}
 
+protected:
+	~Bcd74595Base() = default;
+
 private:
-	const unsigned int segments;
 	const uint8_t sckPin;
 	const uint8_t siPin;
 	const uint8_t rckPin;
-	unsigned int maxNumber;
+	const unsigned int maxNumber;
 
-	template <class T, class Data>
-	static Data ToBcdByteArray(T number)
+	template <class T>
+	static BcdType ToBcdByteArray(T number)
 	{
-		Data data{0U};
+		BcdType data{0U};
 
-		for (size_t i{0U}; i < 2U * sizeof(Data); i++) {
+		for (size_t i{0U}; i < 2U * sizeof(BcdType); i++) {
 			const T quot{number / 10U};
 			const T rem{number - 10U * quot};
 
@@ -57,19 +71,19 @@ private:
 		return data;
 	}
 
-	template <class T, class Data>
-	void ProcessNumber(T number)
+	template <class T>
+	void ProcessNumber(const T number)
 	{
-		const auto data{ToBcdByteArray<T, Data>(number)};
+		const auto data{ToBcdByteArray(number)};
 
 		ShiftData(data);
 	}
 
-	template <class Data>
-	void ShiftData(const Data data) {
+	void ShiftData(const BcdType data)
+	{
 		const auto pData{reinterpret_cast<const uint8_t *>(&data)};
 
-		for (size_t i{0U}; i < sizeof(Data); i++) {
+		for (size_t i{0U}; i < sizeof(BcdType); i++) {
 			shiftOut(siPin, sckPin, LSBFIRST, pData[i]);
 		}
 
@@ -77,6 +91,36 @@ private:
 		digitalWrite(rckPin, HIGH);
 		digitalWrite(rckPin, LOW);
 	}
+};
+
+template <unsigned int segments>
+class Bcd74595 : public Bcd74595Base<segments> {
+public:
+	using Bcd74595Base<segments>::Bcd74595Base;
+};
+
+template <>
+class Bcd74595<1U> : public Bcd74595Base<1U, uint8_t> {
+public:
+	using Bcd74595Base::Bcd74595Base;
+};
+
+template <>
+class Bcd74595<2U> : public Bcd74595Base<2U, uint8_t> {
+public:
+	using Bcd74595Base::Bcd74595Base;
+};
+
+template <>
+class Bcd74595<3U> : public Bcd74595Base<3U, uint16_t> {
+public:
+	using Bcd74595Base::Bcd74595Base;
+};
+
+template <>
+class Bcd74595<4U> : public Bcd74595Base<4U, uint16_t> {
+public:
+	using Bcd74595Base::Bcd74595Base;
 };
 
 #endif
