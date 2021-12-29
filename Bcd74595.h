@@ -95,31 +95,26 @@ private:
 
 template <unsigned int segments>
 class Bcd74595 : public Bcd74595Base<segments> {
-public:
 	using Bcd74595Base<segments>::Bcd74595Base;
 };
 
 template <>
 class Bcd74595<1U> : public Bcd74595Base<1U, uint8_t> {
-public:
 	using Bcd74595Base::Bcd74595Base;
 };
 
 template <>
 class Bcd74595<2U> : public Bcd74595Base<2U, uint8_t> {
-public:
 	using Bcd74595Base::Bcd74595Base;
 };
 
 template <>
 class Bcd74595<3U> : public Bcd74595Base<3U, uint16_t> {
-public:
 	using Bcd74595Base::Bcd74595Base;
 };
 
 template <>
 class Bcd74595<4U> : public Bcd74595Base<4U, uint16_t> {
-public:
 	using Bcd74595Base::Bcd74595Base;
 };
 
